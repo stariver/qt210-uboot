@@ -1,0 +1,48 @@
+#!/bin/sh
+
+export ARCH=arm
+export CROSS_COMPILE=arm-none-linux-gnueabi-
+# export PATH=/opt/arm-2009q3/bin:$PATH
+
+INSTALL_BINDIR=../image
+UBOOT_IMAGE=u-boot.bin
+ 
+{
+CPU_JOB_NUM=$(grep processor /proc/cpuinfo | awk '{field=$NF};END{print field+2}')
+START_TIME=`date +%s`
+
+mkdir -p ../image
+
+echo make mrproper
+make mrproper
+
+echo make qt210_config
+make qt210_config
+
+echo make -j$CPU_JOB_NUM
+echo
+make -j$CPU_JOB_NUM
+if [ $? != 0 ] ; then
+	exit $?
+fi
+
+##mkbl1 build
+cd sd_fusing
+make
+cp mkbl1 ../../image
+cd ..
+
+echo cp -a $UBOOT_IMAGE ../image/
+cp -a $UBOOT_IMAGE ../image/
+
+if [ $INSTALL_BINDIR ]
+then
+echo cp -a $UBOOT_IMAGE $INSTALL_BINDIR/$UBOOT_IMAGE
+cp -a $UBOOT_IMAGE $INSTALL_BINDIR/$UBOOT_IMAGE
+fi
+
+END_TIME=`date +%s`
+
+echo "Total compile time is $((($END_TIME-$START_TIME)/60)) minutes $((($END_TIME-$START_TIME)%60)) seconds"
+
+} 2>&1 | tee build.out
